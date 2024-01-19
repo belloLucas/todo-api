@@ -48,4 +48,43 @@ router.post("/tasks", async (req: Request, res: Response) => {
   return res.status(201).json({ msg: "created" });
 });
 
+router.patch("/tasks/:id", async (req: Request, res: Response) => {
+  const { title, description, color, favorite } = req.body;
+  const taskId = req.params.id;
+
+  if (Object.keys(req.body).length <= 0) {
+    return res.status(400).json({ msg: "Altere pelo menos um campo" });
+  }
+
+  const { data: task, error } = await supabase
+    .from("tb_tasks")
+    .select()
+    .eq("id", taskId);
+  if (error) {
+    return res
+      .status(404)
+      .json({ msg: "Houve um erro ao buscar a tarefa. Tente novamente." });
+  }
+
+  if (task && task.length > 0) {
+    const { data: updatedTask, error: updateError } = await supabase
+      .from("tb_tasks")
+      .update({
+        title,
+        description,
+        color,
+        favorite,
+      })
+      .eq("id", taskId);
+
+    if (updateError) {
+      return res.status(404).json({
+        msg: "Houve um erro na atualização da tarefa. Tente novamente.",
+      });
+    }
+    return res.status(200).json(updatedTask);
+  }
+  return res.status(404).json({ msg: "Tarefa não encontrada." });
+});
+
 export default router;
