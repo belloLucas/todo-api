@@ -1,6 +1,6 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
-import todoRouter from "./routes/todoRouter";
+import todoRouter from "./routes/todoRoute";
 
 dotenv.config();
 
