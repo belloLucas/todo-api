@@ -1,40 +1,33 @@
-import { Router, Request, Response } from "express";
+import { Request, Response } from "express";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const router = Router();
 const dbURL = process.env.URL;
 const dbKey = process.env.KEY;
 
 const supabase = createClient(`${dbURL}`, `${dbKey}`);
 
-router.get(
-  "/tasks",
-  async (
-    req: Request,
-    res: Response
-  ): Promise<Response<any, Record<string, any>>> => {
-    const { data, error } = await supabase.from("tb_tasks").select();
-    if (error) {
-      return res.status(404).send(error);
-    }
-    return res.status(201).send(data);
+export default async function getTasks(req: Request, res: Response) {
+  const { data: tasks } = await supabase.from("tb_tasks").select();
+  if (tasks && tasks.length > 0) {
+    return res.status(201).send(tasks);
   }
-);
+  return res.status(404).json({ msg: "Não foram encontradas tarefas salvas" });
+}
 
-router.post("/tasks", async (req: Request, res: Response) => {
+export async function createTask(req: Request, res: Response) {
   const { title, description, color, favorite } = req.body;
 
   if (!title)
-    return res.status(404).json({ msg: "O título precisa ser preenchido" });
+    return res.status(400).json({ msg: "O título precisa ser preenchido" });
   if (!description)
-    return res.status(404).json({ msg: "A descrição precisa ser preenchida" });
+    return res.status(400).json({ msg: "A descrição precisa ser preenchida" });
   if (!color)
-    return res.status(404).json({ msg: "A cor precisa ser preenchida" });
+    return res.status(400).json({ msg: "A cor precisa ser preenchida" });
   if (!favorite)
-    return res.status(404).json({ msg: "Defina se é uma favorita" });
+    return res.status(400).json({ msg: "Defina se é uma favorita" });
 
   const { error } = await supabase.from("tb_tasks").insert({
     title: title,
@@ -43,12 +36,12 @@ router.post("/tasks", async (req: Request, res: Response) => {
     favorite: favorite,
   });
   if (error) {
-    return res.status(404).json({ error });
+    return res.status(400).json({ error });
   }
-  return res.status(201).json({ msg: "created" });
-});
+  return res.status(200).send();
+}
 
-router.patch("/tasks/:id", async (req: Request, res: Response) => {
+export async function updateTask(req: Request, res: Response) {
   const { title, description, color, favorite } = req.body;
   const taskId = req.params.id;
 
@@ -62,7 +55,7 @@ router.patch("/tasks/:id", async (req: Request, res: Response) => {
     .eq("id", taskId);
   if (error) {
     return res
-      .status(404)
+      .status(400)
       .json({ msg: "Houve um erro ao buscar a tarefa. Tente novamente." });
   }
 
@@ -78,33 +71,28 @@ router.patch("/tasks/:id", async (req: Request, res: Response) => {
       .eq("id", taskId);
 
     if (updateError) {
-      return res.status(404).json({
+      return res.status(400).json({
         msg: "Houve um erro na atualização da tarefa. Tente novamente.",
       });
     }
-    return res.status(200).json(updatedTask);
+    return res.status(201).json(updatedTask);
   }
   return res.status(404).json({ msg: "Tarefa não encontrada." });
-});
+}
 
-router.delete("/tasks/:id", async (req: Request, res: Response) => {
+export async function deleteTask(req: Request, res: Response) {
   const taskId = req.params.id;
 
-  const { data: error } = await supabase
+  const { data: task } = await supabase
     .from("tb_tasks")
     .select()
     .eq("id", taskId);
 
-  if (error) {
-    return res.status(400).json({ msg: "Tarefa não encontrada." });
-  }
-
-  if (!error) {
+  if (task && task.length > 0) {
+    console.log(task);
     await supabase.from("tb_tasks").delete().eq("id", taskId);
     return res.status(200).json({ msg: "Tarefa excluída com sucesso" });
   }
 
-  return res.status(400).json({ msg: "Ocorreu um erro. Tente novamente" });
-});
-
-export default router;
+  return res.status(404).json({ msg: "Tarefa não encontrada." });
+}
