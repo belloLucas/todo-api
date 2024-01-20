@@ -87,4 +87,24 @@ router.patch("/tasks/:id", async (req: Request, res: Response) => {
   return res.status(404).json({ msg: "Tarefa não encontrada." });
 });
 
+router.delete("/tasks/:id", async (req: Request, res: Response) => {
+  const taskId = req.params.id;
+
+  const { data: error } = await supabase
+    .from("tb_tasks")
+    .select()
+    .eq("id", taskId);
+
+  if (error) {
+    return res.status(400).json({ msg: "Tarefa não encontrada." });
+  }
+
+  if (!error) {
+    await supabase.from("tb_tasks").delete().eq("id", taskId);
+    return res.status(200).json({ msg: "Tarefa excluída com sucesso" });
+  }
+
+  return res.status(400).json({ msg: "Ocorreu um erro. Tente novamente" });
+});
+
 export default router;
